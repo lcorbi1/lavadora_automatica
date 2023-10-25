@@ -16,7 +16,6 @@ def Vazao(x):
 
 
 p2 = Pin(2, Pin.IN, Pin.PULL_UP)
-#p2.irq(lambda pin: print("Contador: ", contador), Pin.IRQ_RISING)
 p2.irq(trigger=machine.Pin.IRQ_RISING, handler=Vazao)
 
 """

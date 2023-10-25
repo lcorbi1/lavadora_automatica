@@ -2,7 +2,7 @@
 
 from machine import ADC, Pin, Timer, I2C, lightsleep
 #from pico_i2c_lcd import I2cLcd
-import time, math
+import time, math, utime
 
 #---------------------------PINs-------------------------------
 pin_liga_lavadora = Pin(15, Pin.OUT)
@@ -81,28 +81,40 @@ def Vazao(x):
     pin_liga_modRele_valvulaSol_encher.value(1)  #Liga valvula solenoide
     
     if fluxoAcumulado >= litragem_max_tanquinho:
-        print(f'DESLIGA VALVULA SOLENOIDE DE ENCHER -- > Lavadora: {lavadora}  --> Lavadora Acionada: {lavadora_acionada}')
+        lavadora_acionada = True
         pin_liga_modRele_valvulaSol_encher.value(0)   #Desliga valvula solenoide
+        print(f'DESLIGA VALVULA SOLENOIDE DE ENCHER -- > Lavadora: {lavadora}  --> Lavadora Acionada: {lavadora_acionada}')
         pin_liga_lavadora.value(1)   #Liga a maquina de lavar
         # Enviar sinal para desligar a maquina de lavar depois de 7 minutos
-        lavadora_acionada = True
         pin_envia_sinal_tanqueCheio.value(1)
         pin_envia_sinal_tanqueCheio.value(0)
-        
+        return lavadora_acionada
+    return lavadora_acionada
 
 def setaLavadoraLigada(arg):
     lavadora = 1  #Seta lavadora ligada
     return lavadora
 
+def sleep_caseiro():
+    print("Entrou no sleep caseiro")
+    soma = 0
+    for x in range(1000000):
+        soma = soma + x
+    return soma
+
+
 def temporizador_lavadora_ligada(pin):
     
     # Essa funcao temporizador_lavadora_ligada nao pode chamar direto a funcao setaLavadoraLigada, só deve chamar e atribuir lavadora = 1 caso a interrupcao pin_recebe_sinal_tanqueCheio seja chamada
-    
-    if lavadora_acionada == True:
+    lav_acio = Vazao(1)
+    print(f'Entrou no temporizador_lavadora_ligada --> lavadora_acionada = {lavadora_acionada} --> Lav_acio = {lav_acio}')
+    if lav_acio == True:
         x = setaLavadoraLigada(pin)    ##  <<-----  Aqui ta chamando a funcao acima SEMPRE, independente da IRQ
         print(f'Lavadora: {x}')
         if x == 1:
-            time.sleep(30)
+            print("Entrou no x == 1 ")
+            #utime.sleep(10)
+            tmp = sleep_caseiro()
             pin_liga_lavadora.value(0)  #Desliga lavadora
             #lavadora = 0 #Seta lavadora desligada
             x = 0
@@ -110,10 +122,10 @@ def temporizador_lavadora_ligada(pin):
             print(f'Lavadora desligada: {lavadora}  --> Lavadora Acionada: {lavadora_acionada}')
     else:
         x = 0    ##  <<-----  Aqui ta chamando a funcao acima SEMPRE, independente da IRQ
-        print(f'Lavadora: {x}')
+        print(f'Nao foi acionada a Lavadora: {x}')
 
 
-tempo_funcionamento.init(period = 10000, mode = Timer.PERIODIC, callback = temporizador_lavadora_ligada)
+tempo_funcionamento.init(period = 10000, mode = Timer.ONE_SHOT, callback = temporizador_lavadora_ligada)
     
     
 def Checar_nivel_de_agua():
